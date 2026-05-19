@@ -1,0 +1,60 @@
+# ============================================================
+# API Dockerfile Production — Multi-stage, image Alpine minimale
+# Usage : docker build -f infrastructure/docker/api.Dockerfile.prod --target production .
+# ============================================================
+
+FROM node:20-alpine AS base
+RUN npm install -g pnpm@9.1.0
+WORKDIR /app
+
+# ---- Dependencies ----
+FROM base AS deps
+COPY package.json pnpm-workspace.yaml turbo.json ./
+COPY packages/config/package.json ./packages/config/
+COPY packages/types/package.json ./packages/types/
+COPY packages/schemas/package.json ./packages/schemas/
+COPY packages/tax-rules/package.json ./packages/tax-rules/
+COPY packages/sdk/package.json ./packages/sdk/
+COPY apps/api/package.json ./apps/api/
+RUN pnpm install --frozen-lockfile
+
+# ---- Build ----
+FROM deps AS builder
+COPY . .
+RUN pnpm --filter api... build
+# Générer le client Prisma
+RUN pnpm --filter api generate
+
+# ---- Production minimale ----
+FROM node:20-alpine AS production
+LABEL maintainer="Complya Team"
+
+# Sécurité : utilisateur non-root
+RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
+RUN npm install -g pnpm@9.1.0
+
+WORKDIR /app
+
+# Uniquement les artefacts nécessaires
+COPY --from=builder --chown=nestjs:nodejs /app/package.json ./
+COPY --from=builder --chown=nestjs:nodejs /app/pnpm-workspace.yaml ./
+COPY --from=builder --chown=nestjs:nodejs /app/apps/api/package.json ./apps/api/
+COPY --from=builder --chown=nestjs:nodejs /app/apps/api/dist ./apps/api/dist
+COPY --from=builder --chown=nestjs:nodejs /app/apps/api/prisma ./apps/api/prisma
+COPY --from=builder --chown=nestjs:nodejs /app/packages/types/package.json ./packages/types/
+COPY --from=builder --chown=nestjs:nodejs /app/packages/types/dist ./packages/types/dist
+COPY --from=builder --chown=nestjs:nodejs /app/packages/schemas/package.json ./packages/schemas/
+COPY --from=builder --chown=nestjs:nodejs /app/packages/schemas/dist ./packages/schemas/dist
+COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
+
+# Prisma client généré
+COPY --from=builder --chown=nestjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+
+ENV NODE_ENV=production
+USER nestjs
+EXPOSE 3001
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://localhost:3001/health || exit 1
+
+CMD ["node", "apps/api/dist/main.js"]

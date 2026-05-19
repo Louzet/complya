@@ -1,0 +1,77 @@
+name: Database Migration
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/api/prisma/migrations/**'
+      - 'apps/api/prisma/schema.prisma'
+
+  # Permet de déclencher manuellement depuis l'interface GitHub
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environnement cible'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+jobs:
+  migrate:
+    name: Run Prisma Migrations
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm --filter api generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+
+      - name: Run Prisma Migrations
+        run: pnpm --filter api migrate:deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+
+      - name: Migration Success Notification
+        if: success()
+        run: |
+          echo "✅ Migration réussie sur ${{ github.event.inputs.environment || 'production' }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+      - name: Migration Failure Notification
+        if: failure()
+        run: |
+          echo "❌ ÉCHEC de la migration sur ${{ github.event.inputs.environment || 'production' }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Vérifier les logs ci-dessus et rollback si nécessaire"
+        # TODO : Ajouter une notification Slack/email en cas d'échec
+        # Exemple avec Slack :
+        # uses: slackapi/slack-github-action@v1
+        # with:
+        #   payload: '{"text": "❌ Migration échouée sur ${{ github.event.inputs.environment }}"}'
+        # env:
+        #   SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

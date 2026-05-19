@@ -1,0 +1,52 @@
+# ============================================================
+# Règle CNSS — Caisse Nationale de Sécurité Sociale (Gabon)
+# Source : CNSS Gabon — Code du Travail, Décret n°0003/PR/2016
+# Applicabilité : 2024-01-01 → jusqu'à remplacement
+#
+# TODO : Vérifier les taux auprès de la CNSS Gabon avant mise en prod
+# Contact : cnss.ga / +241 1 74 06 20
+# ============================================================
+
+id: GA_CNSS_2024
+country: GA
+authority: CNSS
+name: "Cotisations CNSS Gabon"
+effectiveDate: "2024-01-01"
+currency: XAF
+
+contributions:
+  # Part salarié
+  employee:
+    vieillesse:
+      rate: 0.025          # 2.5% sur salaire brut
+      base: gross_salary
+      ceiling: null        # TODO : confirmer s'il existe un plafond
+      label: "Assurance vieillesse (salarié)"
+
+  # Part employeur
+  employer:
+    vieillesse:
+      rate: 0.05           # 5% sur salaire brut — TODO : vérifier
+      base: gross_salary
+      ceiling: null
+      label: "Assurance vieillesse (employeur)"
+
+    accident_travail:
+      rate: 0.025          # 2.5% — TODO : variable selon secteur
+      base: gross_salary
+      ceiling: null
+      label: "Accidents du travail"
+
+    allocations_familiales:
+      rate: 0.08           # 8% — TODO : vérifier
+      base: gross_salary
+      ceiling: null
+      label: "Allocations familiales"
+
+declarationFrequency: monthly
+declarationDeadline: "25th of following month"
+
+notes: >
+  Les taux ci-dessus sont des estimations à valider auprès de la CNSS Gabon.
+  Ne pas utiliser en production sans validation juridique.
+  Sources : code.travail.ga, textes réglementaires CNSS 2024.

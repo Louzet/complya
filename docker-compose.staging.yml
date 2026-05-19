@@ -1,0 +1,31 @@
+# ============================================================
+# docker-compose.staging.yml — Override staging
+# Usage : docker-compose -f docker-compose.yml -f docker-compose.staging.yml up
+#
+# Différences vs dev :
+# - Build target : production (multi-stage)
+# - PostgreSQL local désactivé — DATABASE_URL pointe vers Neon staging branch
+# - NODE_ENV=staging
+# ============================================================
+
+services:
+  api:
+    build:
+      target: production
+    environment:
+      - NODE_ENV=staging
+    # DATABASE_URL et DATABASE_URL_UNPOOLED pointent vers la branche Neon "staging"
+    # Les variables sont dans apps/api/.env (surchargées par le CI/CD)
+    restart: always
+
+  web:
+    build:
+      target: production
+    environment:
+      - NODE_ENV=staging
+    restart: always
+
+  # PostgreSQL local désactivé en staging — on utilise Neon
+  postgres:
+    profiles:
+      - disabled

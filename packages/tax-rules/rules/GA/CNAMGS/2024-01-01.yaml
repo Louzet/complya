@@ -1,0 +1,41 @@
+# ============================================================
+# Règle CNAMGS — Caisse Nationale d'Assurance Maladie et de
+# Garantie Sociale (Gabon)
+# Source : CNAMGS Gabon — Loi n°20/2005
+# Applicabilité : 2024-01-01 → jusqu'à remplacement
+#
+# TODO : Vérifier les taux auprès de la CNAMGS avant mise en prod
+# Contact : cnamgs.ga
+# ============================================================
+
+id: GA_CNAMGS_2024
+country: GA
+authority: CNAMGS
+name: "Cotisations CNAMGS Gabon"
+effectiveDate: "2024-01-01"
+currency: XAF
+
+contributions:
+  # Part salarié
+  employee:
+    assurance_maladie:
+      rate: 0.025          # 2.5% — TODO : vérifier taux exact
+      base: gross_salary
+      ceiling: null
+      label: "Assurance maladie (salarié)"
+
+  # Part employeur
+  employer:
+    assurance_maladie:
+      rate: 0.04           # 4% — TODO : vérifier taux exact
+      base: gross_salary
+      ceiling: null
+      label: "Assurance maladie (employeur)"
+
+declarationFrequency: monthly
+declarationDeadline: "25th of following month"
+
+notes: >
+  Les taux ci-dessus sont des estimations à valider auprès de la CNAMGS.
+  Source : Loi n°20/2005 portant création de la CNAMGS et textes d'application.
+  Ne pas utiliser en production sans validation juridique.

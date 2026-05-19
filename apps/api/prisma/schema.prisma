@@ -1,0 +1,94 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+  schemas   = ["complya"]
+}
+
+// ============================================================
+// FONDATIONS MULTI-TENANT — Alpha A01
+// ============================================================
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  companies Company[]
+  users     UserOrganization[]
+
+  @@map("organizations")
+  @@schema("complya")
+}
+
+model Company {
+  id           String  @id @default(cuid())
+  orgId        String
+  name         String
+  nif          String? // Numéro d'identification fiscale
+  cnssNumber   String?
+  cnamgsNumber String?
+  country      String  @default("GA") // ISO 3166-1 alpha-2
+  currency     String  @default("XAF") // Franc CFA BEAC
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@map("companies")
+  @@schema("complya")
+}
+
+// ============================================================
+// UTILISATEURS — Alpha A02
+// ============================================================
+
+model User {
+  id          String  @id @default(cuid())
+  clerkUserId String  @unique // Mapping Clerk → ID interne
+  email       String  @unique
+  firstName   String?
+  lastName    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizations UserOrganization[]
+
+  @@index([clerkUserId])
+  @@map("users")
+  @@schema("complya")
+}
+
+model UserOrganization {
+  id        String           @id @default(cuid())
+  userId    String
+  orgId     String
+  role      OrganizationRole @default(ORG_MEMBER)
+  createdAt DateTime         @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId])
+  @@index([orgId])
+  @@map("user_organizations")
+  @@schema("complya")
+}
+
+enum OrganizationRole {
+  ORG_OWNER
+  ORG_ADMIN
+  ORG_MEMBER
+
+  @@schema("complya")
+}

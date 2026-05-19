@@ -1,0 +1,60 @@
+# ============================================================
+# Règle DGI — Direction Générale des Impôts (Gabon)
+# IRPP et retenues à la source sur salaires
+# Source : Code Général des Impôts Gabon (CGI)
+# Applicabilité : 2024-01-01 → jusqu'à remplacement
+#
+# TODO : Vérifier les tranches IRPP dans le CGI Gabon en vigueur
+# Contact : dgi.ga / impots.ga
+# ============================================================
+
+id: GA_DGI_IRPP_2024
+country: GA
+authority: DGI
+taxType: IRPP
+name: "IRPP — Impôt sur le Revenu des Personnes Physiques (Gabon)"
+effectiveDate: "2024-01-01"
+currency: XAF
+
+# Barème progressif IRPP — TODO : valider les tranches exactes dans le CGI
+# Source estimée : CGI Gabon 2024, Articles relatifs à l'IRPP
+irppBrackets:
+  - from: 0
+    to: 1500000
+    rate: 0.00
+    label: "Exonération"
+  - from: 1500001
+    to: 3000000
+    rate: 0.05
+    label: "Tranche 5%"
+  - from: 3000001
+    to: 5000000
+    rate: 0.10
+    label: "Tranche 10%"
+  - from: 5000001
+    to: 10000000
+    rate: 0.20
+    label: "Tranche 20%"
+  - from: 10000001
+    to: null
+    rate: 0.35
+    label: "Tranche 35%"
+
+# Abattements et charges déductibles — TODO : vérifier
+deductions:
+  forfaitaire:
+    rate: 0.20
+    ceiling: null
+    label: "Abattement forfaitaire 20%"
+
+declarationFrequency: monthly
+declarationDeadline: "15th of following month"
+declarationPortal: "https://dgfip.ga"  # TODO : vérifier URL réelle DGI Gabon
+
+notes: >
+  IMPORTANT : Les tranches et taux IRPP ci-dessus sont des estimations
+  basées sur des sources publiques non officielles.
+  Valider IMPÉRATIVEMENT avec le Code Général des Impôts Gabon en vigueur
+  avant tout déploiement en production.
+  La DUS (Déclaration Unique des Salaires) est déposée sur le portail
+  Gabon Connect (gabonconnect.ga) — intègre DGI + CNSS + CNAMGS.

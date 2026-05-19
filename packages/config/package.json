@@ -1,0 +1,18 @@
+{
+  "name": "@complya/config",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./tsconfig.base.json",
+  "exports": {
+    "./tsconfig": "./tsconfig.base.json",
+    "./eslint-base": "./eslint-base.js",
+    "./prettier": "./prettier.config.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "eslint": "^8.57.0",
+    "@typescript-eslint/eslint-plugin": "^7.13.0",
+    "@typescript-eslint/parser": "^7.13.0",
+    "prettier": "^3.3.0"
+  }
+}

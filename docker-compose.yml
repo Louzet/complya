@@ -1,0 +1,77 @@
+# ============================================================
+# docker-compose.yml — Développement local
+# Usage : docker-compose up
+# Services : api (NestJS) + web (Next.js) + postgres (local)
+#
+# Notes :
+# - PostgreSQL local uniquement pour dev — staging/prod utilisent Neon
+# - Hot-reload activé via volumes bind-mount
+# - Les .env sont chargés depuis apps/api/.env et apps/web/.env.local
+# ============================================================
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/api.Dockerfile
+      target: development
+    volumes:
+      - ./apps/api:/app/apps/api
+      - ./packages:/app/packages
+      - /app/node_modules
+      - /app/apps/api/node_modules
+    ports:
+      - "3001:3001"
+    env_file:
+      - ./apps/api/.env
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    command: pnpm --filter api dev
+
+  web:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/web.Dockerfile
+      target: development
+    volumes:
+      - ./apps/web:/app/apps/web
+      - ./packages:/app/packages
+      - /app/node_modules
+      - /app/apps/web/node_modules
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./apps/web/.env.local
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - api
+    restart: unless-stopped
+    command: pnpm --filter web dev
+
+  postgres:
+    # DB locale pour dev UNIQUEMENT — staging/prod utilisent Neon
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: cemac_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cemac_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    name: complya_postgres_data

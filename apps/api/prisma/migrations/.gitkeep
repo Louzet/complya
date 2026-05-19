@@ -1,0 +1,10 @@
+// Dossier des migrations Prisma
+// Ce dossier sera peuplé automatiquement par : pnpm --filter api migrate:dev
+//
+// Ne jamais créer de fichiers de migration à la main.
+// Ne jamais exécuter prisma db push en production.
+//
+// Commandes :
+//   Dev     : pnpm --filter api migrate:dev --name <description>
+//   Prod    : pnpm --filter api migrate:deploy
+//   Reset   : pnpm --filter api migrate:reset  (DESTRUCTIF)
