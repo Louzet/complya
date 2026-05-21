@@ -4,6 +4,7 @@ export interface Company {
   id: Cuid;
   orgId: Cuid;
   name: string;
+  description?: string | null;
   nif: string | null;
   cnssNumber: string | null;
   cnamgsNumber: string | null;
@@ -15,6 +16,7 @@ export interface Company {
 
 export interface CreateCompanyDto {
   name: string;
+  description?: string;
   nif?: string;
   cnssNumber?: string;
   cnamgsNumber?: string;
@@ -24,6 +26,7 @@ export interface CreateCompanyDto {
 
 export interface UpdateCompanyDto {
   name?: string;
+  description?: string;
   nif?: string;
   cnssNumber?: string;
   cnamgsNumber?: string;

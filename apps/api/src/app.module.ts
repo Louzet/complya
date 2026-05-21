@@ -2,20 +2,20 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { configuration } from './config/configuration';
+import { PrismaModule } from './shared/prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
+import { OrganizationModule } from './modules/organization/organization.module';
 import { StorageModule } from './modules/storage/storage.module';
 
 @Module({
   imports: [
-    // Configuration globale avec validation Zod au démarrage
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
       cache: true,
     }),
 
-    // Rate limiting global
     ThrottlerModule.forRootAsync({
       inject: [],
       useFactory: () => ({
@@ -28,9 +28,10 @@ import { StorageModule } from './modules/storage/storage.module';
       }),
     }),
 
-    // Modules fonctionnels
+    PrismaModule,
     AuthModule,
     HealthModule,
+    OrganizationModule,
     StorageModule,
   ],
 })
