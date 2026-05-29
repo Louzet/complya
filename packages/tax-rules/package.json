@@ -17,12 +17,13 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "zod": "^3.23.0",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "zod": "^3.25.0"
   },
   "devDependencies": {
-    "typescript": "^5.4.0",
+    "@complya/config": "workspace:*",
     "@types/js-yaml": "^4.0.9",
-    "@complya/config": "workspace:*"
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0"
   }
 }
