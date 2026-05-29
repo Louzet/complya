@@ -3,6 +3,8 @@
 Tous les changements notables de Complya sont documentés ici.
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) — Versioning : [SemVer](https://semver.org/lang/fr/)
 
+## [0.2.1](https://github.com/Louzet/complya/compare/v0.2.0...v0.2.1) (2026-05-29)
+
 ## 0.2.0 (2026-05-29)
 
 ### Nouvelles fonctionnalites
