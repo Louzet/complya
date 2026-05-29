@@ -1,0 +1,51 @@
+# ============================================================
+# Fichiers à exclure des images Docker
+# ============================================================
+
+# Dépendances (réinstallées dans le container)
+node_modules/
+*/node_modules/
+
+# Build outputs inutiles pendant le build
+.next/
+dist/
+build/
+.turbo/
+
+# Environnements
+.env
+.env.local
+**/.env
+**/.env.local
+
+# VCS
+.git/
+.gitignore
+
+# IDE & OS
+.DS_Store
+.vscode/
+.idea/
+
+# Logs
+*.log
+logs/
+.logs/
+
+# Tests & couverture
+coverage/
+.nyc_output/
+**/*.spec.ts
+**/*.e2e-spec.ts
+
+# Documentation
+README.md
+docs/
+
+# CI/CD (pas nécessaire dans le container)
+.github/
+
+# Docker files eux-mêmes
+Dockerfile*
+docker-compose*.yml
+infrastructure/docker/

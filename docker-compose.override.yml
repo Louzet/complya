@@ -1,0 +1,107 @@
+# ============================================================
+# docker-compose.override.yml — Services locaux supplémentaires
+#
+# Mergé automatiquement par Docker Compose avec docker-compose.yml.
+#
+# Services additionnels :
+#   minio    → émulation Cloudflare R2  (S3-compatible)
+#   mailpit  → capture emails SMTP      (remplace MailHog)
+#
+# Override du service api :
+#   Pointe DATABASE_URL / R2 / SMTP vers les containers internes.
+#   Le fichier apps/api/.env garde les URLs localhost pour les
+#   outils host (prisma studio, migrate.sh, etc.)
+# ============================================================
+
+networks:
+  complya:
+    name: complya_dev
+
+services:
+  # ─── MinIO — émulation Cloudflare R2 ────────────────────────────────────────
+  # Même API S3-compatible que R2 → zéro diff de code côté NestJS
+  # Console : http://localhost:9001  (minioadmin / minioadmin)
+  minio:
+    image: minio/minio:latest
+    networks:
+      - complya
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  # Initialise les buckets au premier démarrage (idempotent)
+  minio-init:
+    image: minio/mc:latest
+    networks:
+      - complya
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "
+        mc alias set local http://minio:9000 minioadmin minioadmin &&
+        mc mb --ignore-existing local/complya-documents-dev &&
+        mc mb --ignore-existing local/complya-exports-dev &&
+        mc anonymous set none local/complya-documents-dev &&
+        mc anonymous set none local/complya-exports-dev &&
+        echo 'Buckets MinIO prêts.'
+      "
+    restart: "no"
+
+  # ─── MailPit — capture d'emails ─────────────────────────────────────────────
+  # Tous les emails SMTP sont capturés ici — jamais envoyés réellement
+  # UI : http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    networks:
+      - complya
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    environment:
+      MP_MAX_MESSAGES: 200
+      MP_UI_AUTH_FILE: ""
+    restart: unless-stopped
+
+  # ─── Override api ────────────────────────────────────────────────────────────
+  # Surcharge les vars du env_file pour pointer vers les services internes.
+  api:
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/complya
+      DATABASE_URL_UNPOOLED: postgresql://postgres:postgres@postgres:5432/complya
+      R2_ENDPOINT: http://minio:9000
+      R2_ACCESS_KEY_ID: minioadmin
+      R2_SECRET_ACCESS_KEY: minioadmin
+      R2_BUCKET_NAME: complya-documents-dev
+      R2_ACCOUNT_ID: local
+      R2_PUBLIC_URL: http://localhost:9000/complya-documents-dev
+      EMAIL_SMTP_HOST: mailpit
+      EMAIL_SMTP_PORT: "1025"
+    depends_on:
+      minio:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  # ─── Override migrate ────────────────────────────────────────────────────────
+  migrate:
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/complya
+      DATABASE_URL_UNPOOLED: postgresql://postgres:postgres@postgres:5432/complya
+
+volumes:
+  minio_data:
+    name: complya_minio_data

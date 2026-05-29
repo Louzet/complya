@@ -1,76 +1,156 @@
 # ============================================================
-# docker-compose.yml — Développement local
-# Usage : docker-compose up
-# Services : api (NestJS) + web (Next.js) + postgres (local)
+# docker-compose.yml — Environnement de développement Complya
+#
+# Usage :
+#   make dev              → démarrage complet + logs (recommandé)
+#   make up               → restart rapide sans rebuild
+#   make stop             → arrêt propre
+#   make migrate-docker NAME=xxx → créer une migration Prisma
+#
+# Ordre de démarrage :
+#   postgres → migrate (one-shot) → api → web
 #
 # Notes :
-# - PostgreSQL local uniquement pour dev — staging/prod utilisent Neon
-# - Hot-reload activé via volumes bind-mount
-# - Les .env sont chargés depuis apps/api/.env et apps/web/.env.local
+#   - PostgreSQL local uniquement pour dev — staging/prod utilisent Neon
+#   - Hot-reload : src/ et prisma/ montés ; node_modules protégés (volumes anonymes)
+#   - docker-compose.override.yml ajoute MinIO, MailPit et surcharge les vars api
 # ============================================================
 
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+networks:
+  complya:
+    name: complya_dev
+
 services:
+  # ─── PostgreSQL local ────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:17-alpine
+    networks:
+      - complya
+    environment:
+      POSTGRES_DB: complya
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d complya"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+    logging: *default-logging
+
+  # ─── Migrations Prisma (one-shot, idempotent) ────────────────────────────────
+  # Crée le schema PostgreSQL si absent, puis applique prisma migrate deploy.
+  # Doit se terminer avec exit 0 avant que l'api démarre.
+  migrate:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/api.Dockerfile
+      target: development
+    networks:
+      - complya
+    working_dir: /app/apps/api
+    command: >
+      sh -c "
+        pnpm --filter api exec prisma generate &&
+        echo 'CREATE SCHEMA IF NOT EXISTS complya;' | pnpm exec prisma db execute --stdin --url postgresql://postgres:postgres@postgres:5432/complya &&
+        pnpm exec prisma migrate deploy
+      "
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/complya
+      DATABASE_URL_UNPOOLED: postgresql://postgres:postgres@postgres:5432/complya
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    logging: *default-logging
+
+  # ─── API NestJS ─────────────────────────────────────────────────────────────
+  # Volumes anonymes (/app/…/node_modules) protègent les symlinks pnpm installés
+  # dans le container des node_modules du host montés via ./packages.
   api:
     build:
       context: .
       dockerfile: infrastructure/docker/api.Dockerfile
       target: development
+    networks:
+      - complya
     volumes:
-      - ./apps/api:/app/apps/api
-      - ./packages:/app/packages
-      - /app/node_modules
+      - ./apps/api/src:/app/apps/api/src
+      - ./apps/api/prisma:/app/apps/api/prisma
       - /app/apps/api/node_modules
+      - /app/node_modules
+      - ./packages:/app/packages
+      - /app/packages/config/node_modules
+      - /app/packages/types/node_modules
+      - /app/packages/schemas/node_modules
+      - /app/packages/tax-rules/node_modules
+      - /app/packages/sdk/node_modules
     ports:
       - "3001:3001"
+      - "9229:9229"
     env_file:
       - ./apps/api/.env
     environment:
-      - NODE_ENV=development
+      NODE_ENV: development
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 45s
     restart: unless-stopped
-    command: pnpm --filter api dev
+    command: >
+      sh -c "pnpm --filter api exec prisma generate && pnpm --filter api dev"
+    logging: *default-logging
 
+  # ─── Frontend Next.js ────────────────────────────────────────────────────────
+  # HOSTNAME=0.0.0.0 → bind sur toutes les interfaces (requis pour Docker port-forward)
   web:
     build:
       context: .
       dockerfile: infrastructure/docker/web.Dockerfile
       target: development
+    networks:
+      - complya
     volumes:
-      - ./apps/web:/app/apps/web
-      - ./packages:/app/packages
-      - /app/node_modules
+      - ./apps/web/src:/app/apps/web/src
+      - ./apps/web/public:/app/apps/web/public
       - /app/apps/web/node_modules
+      - /app/node_modules
+      - ./packages:/app/packages
+      - /app/packages/config/node_modules
+      - /app/packages/types/node_modules
+      - /app/packages/schemas/node_modules
+      - /app/packages/tax-rules/node_modules
+      - /app/packages/sdk/node_modules
     ports:
       - "3000:3000"
     env_file:
       - ./apps/web/.env.local
     environment:
-      - NODE_ENV=development
+      NODE_ENV: development
+      HOSTNAME: "0.0.0.0"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     restart: unless-stopped
     command: pnpm --filter web dev
-
-  postgres:
-    # DB locale pour dev UNIQUEMENT — staging/prod utilisent Neon
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: cemac_dev
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d cemac_dev"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    restart: unless-stopped
+    logging: *default-logging
 
 volumes:
   postgres_data:
