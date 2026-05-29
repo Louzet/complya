@@ -1,5 +1,6 @@
 {
   "name": "complya",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "turbo dev",
@@ -9,16 +10,34 @@
     "lint": "turbo lint",
     "type-check": "turbo type-check",
     "format": "prettier --write \"**/*.{ts,tsx,json,md,yaml}\"",
-    "clean": "turbo clean && find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +"
+    "clean": "turbo clean && find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +",
+    "prepare": "husky",
+    "release": "release-it",
+    "release:patch": "release-it patch",
+    "release:minor": "release-it minor",
+    "release:major": "release-it major",
+    "release:dry": "release-it --dry-run --no-git.requireBranch --no-git.requireCleanWorkingDir --no-git.push --ci"
   },
   "devDependencies": {
-    "turbo": "latest",
-    "prettier": "^3.3.0",
-    "typescript": "^5.4.0"
+    "@release-it/conventional-changelog": "^9.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.5",
+    "prettier": "^3.5.0",
+    "release-it": "^17.0.0",
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.0"
   },
   "engines": {
-    "node": ">=20.0.0",
+    "node": ">=22.0.0",
     "pnpm": ">=9.0.0"
   },
-  "packageManager": "pnpm@9.1.0"
+  "packageManager": "pnpm@9.15.4",
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "prettier --write"
+    ],
+    "*.{json,md,yaml,yml}": [
+      "prettier --write"
+    ]
+  }
 }
