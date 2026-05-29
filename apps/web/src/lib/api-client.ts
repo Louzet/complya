@@ -10,7 +10,7 @@
  * Pour le client, utiliser packages/sdk
  */
 
-interface ApiClientOptions extends Omit<RequestInit, 'body'> {
+interface ApiClientOptions extends Omit<RequestInit, "body"> {
   token?: string;
   body?: unknown;
 }
@@ -28,19 +28,26 @@ export class ApiClientError extends Error {
     public readonly details?: ApiError,
   ) {
     super(message);
-    this.name = 'ApiClientError';
+    this.name = "ApiClientError";
   }
+}
+
+const API_URL = process.env["NEXT_PUBLIC_API_URL"];
+if (!API_URL) {
+  throw new Error(
+    "NEXT_PUBLIC_API_URL est requis. Vérifier apps/web/.env.local",
+  );
 }
 
 async function apiFetch<T>(
   path: string,
   options: ApiClientOptions = {},
 ): Promise<T> {
-  const apiUrl = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001';
+  const apiUrl = API_URL;
   const { token, body, headers: extraHeaders, ...rest } = options;
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(extraHeaders as Record<string, string>),
   };
@@ -65,17 +72,17 @@ async function apiFetch<T>(
 
 export const apiClient = {
   get: <T>(path: string, options?: ApiClientOptions) =>
-    apiFetch<T>(path, { ...options, method: 'GET' }),
+    apiFetch<T>(path, { ...options, method: "GET" }),
 
   post: <T>(path: string, body: unknown, options?: ApiClientOptions) =>
-    apiFetch<T>(path, { ...options, method: 'POST', body }),
+    apiFetch<T>(path, { ...options, method: "POST", body }),
 
   put: <T>(path: string, body: unknown, options?: ApiClientOptions) =>
-    apiFetch<T>(path, { ...options, method: 'PUT', body }),
+    apiFetch<T>(path, { ...options, method: "PUT", body }),
 
   patch: <T>(path: string, body: unknown, options?: ApiClientOptions) =>
-    apiFetch<T>(path, { ...options, method: 'PATCH', body }),
+    apiFetch<T>(path, { ...options, method: "PATCH", body }),
 
   delete: <T>(path: string, options?: ApiClientOptions) =>
-    apiFetch<T>(path, { ...options, method: 'DELETE' }),
+    apiFetch<T>(path, { ...options, method: "DELETE" }),
 };

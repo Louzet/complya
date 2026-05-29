@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { SignOutButton } from '@clerk/nextjs';
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { SignOutButton } from "@clerk/nextjs";
 import {
   ChevronLeft,
   ChevronRight,
   LayoutDashboard,
   LogOut,
-} from 'lucide-react';
-import { clsx } from 'clsx';
+} from "lucide-react";
+import { clsx } from "clsx";
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
+  { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
 ] as const;
 
 export function Sidebar() {
@@ -23,14 +23,16 @@ export function Sidebar() {
   return (
     <aside
       className={clsx(
-        'relative flex flex-col flex-shrink-0 h-screen bg-slate-950 transition-[width] duration-200 ease-in-out',
-        collapsed ? 'w-16' : 'w-60',
+        "relative flex flex-col flex-shrink-0 h-screen bg-slate-950 transition-[width] duration-200 ease-in-out",
+        collapsed ? "w-16" : "w-60",
       )}
     >
       {/* Toggle */}
       <button
         onClick={() => setCollapsed((c) => !c)}
-        aria-label={collapsed ? 'Déplier la barre latérale' : 'Replier la barre latérale'}
+        aria-label={
+          collapsed ? "Déplier la barre latérale" : "Replier la barre latérale"
+        }
         className="absolute -right-3 top-5 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-slate-700 bg-slate-950 text-slate-400 transition-colors duration-150 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       >
         {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
@@ -39,17 +41,20 @@ export function Sidebar() {
       {/* Logo */}
       <div
         className={clsx(
-          'flex h-14 flex-shrink-0 items-center border-b border-slate-800',
-          collapsed ? 'justify-center' : 'px-5',
+          "flex h-14 flex-shrink-0 items-center border-b border-slate-800",
+          collapsed ? "justify-center" : "px-5",
         )}
       >
         <span className="select-none text-lg font-bold tracking-tight text-white">
-          {collapsed ? 'C' : 'Complya'}
+          {collapsed ? "C" : "Complya"}
         </span>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 space-y-0.5 overflow-y-auto py-3 px-2" aria-label="Navigation principale">
+      <nav
+        className="flex-1 space-y-0.5 overflow-y-auto py-3 px-2"
+        aria-label="Navigation principale"
+      >
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
           return (
@@ -58,13 +63,13 @@ export function Sidebar() {
               href={href}
               title={collapsed ? label : undefined}
               className={clsx(
-                'flex items-center gap-3 rounded-lg py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
-                collapsed ? 'justify-center px-2' : 'px-3',
+                "flex items-center gap-3 rounded-lg py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                collapsed ? "justify-center px-2" : "px-3",
                 active
-                  ? 'bg-blue-600/20 text-white'
-                  : 'text-slate-400 hover:bg-white/[0.06] hover:text-white',
+                  ? "bg-blue-600/20 text-white"
+                  : "text-slate-400 hover:bg-white/[0.06] hover:text-white",
               )}
-              aria-current={active ? 'page' : undefined}
+              aria-current={active ? "page" : undefined}
             >
               <Icon size={18} strokeWidth={1.75} className="flex-shrink-0" />
               {!collapsed && <span>{label}</span>}
@@ -73,14 +78,23 @@ export function Sidebar() {
         })}
       </nav>
 
+      {/* Version */}
+      {!collapsed && (
+        <div className="px-4 pb-1 pt-2">
+          <span className="text-[11px] tabular-nums text-slate-600">
+            v{process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0"}
+          </span>
+        </div>
+      )}
+
       {/* Déconnexion */}
-      <div className={clsx('border-t border-slate-800 p-2')}>
+      <div className={clsx("border-t border-slate-800 p-2")}>
         <SignOutButton>
           <button
-            title={collapsed ? 'Déconnexion' : undefined}
+            title={collapsed ? "Déconnexion" : undefined}
             className={clsx(
-              'flex w-full items-center gap-3 rounded-lg py-2 text-sm font-medium text-slate-400 transition-colors duration-150 hover:bg-white/[0.06] hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
-              collapsed ? 'justify-center px-2' : 'px-3',
+              "flex w-full items-center gap-3 rounded-lg py-2 text-sm font-medium text-slate-400 transition-colors duration-150 hover:bg-white/[0.06] hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+              collapsed ? "justify-center px-2" : "px-3",
             )}
           >
             <LogOut size={18} strokeWidth={1.75} className="flex-shrink-0" />
