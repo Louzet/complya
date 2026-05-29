@@ -1,0 +1,51 @@
+#!/bin/sh
+# pre-push : rappel du workflow de release lors d'un push vers main.
+# Ne bloque pas le push — informatif uniquement.
+
+CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+NC='\033[0m'
+
+while read local_ref local_sha remote_ref remote_sha; do
+  if echo "$remote_ref" | grep -q "refs/heads/main"; then
+
+    # Dernier tag connu (vide si aucun tag encore)
+    last_tag=$(git describe --tags --match="v*" --abbrev=0 2>/dev/null || echo "")
+
+    if [ -n "$last_tag" ]; then
+      commits_since=$(git log --oneline "${last_tag}..HEAD" 2>/dev/null | wc -l | tr -d ' ')
+      since_label="depuis ${last_tag}"
+    else
+      commits_since=$(git log --oneline HEAD 2>/dev/null | wc -l | tr -d ' ')
+      since_label="(pas encore de tag)"
+      last_tag="aucun"
+    fi
+
+    printf "\n"
+    printf "${CYAN}  Push vers main detecte.${NC}\n"
+    printf "\n"
+    printf "  Derniere release : ${YELLOW}%s${NC} — %s commits depuis.\n" "$last_tag" "$commits_since"
+    printf "\n"
+    printf "  Si tu viens de merger une PR, voici les etapes :\n"
+    printf "\n"
+    printf "  ${GREEN}1.${NC} Voir ce qui sera dans la prochaine release :\n"
+    printf "       make release-dry\n"
+    printf "\n"
+    printf "  ${GREEN}2.${NC} Lancer la release (depuis main, working dir propre) :\n"
+    printf "       make release\n"
+    printf "\n"
+    printf "  ${GREEN}3.${NC} Si seulement des corrections (pas de release maintenant) :\n"
+    if [ -n "$last_tag" ] && [ "$last_tag" != "aucun" ]; then
+      printf "       git log --oneline %s..HEAD\n" "$last_tag"
+    else
+      printf "       git log --oneline HEAD~10..HEAD\n"
+    fi
+    printf "       # Accumule les fix: jusqu'a avoir un lot coherent, puis release.\n"
+    printf "\n"
+    printf "  Documentation complete : docs/releases.md\n"
+    printf "\n"
+  fi
+done
+
+exit 0

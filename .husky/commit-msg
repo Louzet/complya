@@ -1,0 +1,39 @@
+#!/bin/sh
+# Vérifie que le message de commit respecte la convention Conventional Commits.
+# Voir docs/releases.md pour le format et les exemples.
+
+msg=$(cat "$1")
+
+# Ignorer les commits de merge, revert automatique, et release-it
+echo "$msg" | grep -qE "^(Merge|Revert|chore\(release\):)" && exit 0
+
+pattern="^(feat|fix|chore|docs|style|refactor|perf|test|ci|build|revert)(\(.+\))?(!)?: .{1,100}"
+if ! echo "$msg" | grep -qE "$pattern"; then
+  echo ""
+  echo "  Message de commit invalide."
+  echo "  Format requis : type(scope): description"
+  echo ""
+  echo "  Types valides :"
+  echo "    feat      Nouvelle fonctionnalite (bump minor)"
+  echo "    fix       Correction de bug (bump patch)"
+  echo "    chore     Maintenance, deps, config"
+  echo "    docs      Documentation uniquement"
+  echo "    refactor  Refactoring sans bug fix ni feature"
+  echo "    perf      Amelioration de performance (bump patch)"
+  echo "    test      Ajout ou correction de tests"
+  echo "    ci        CI/CD uniquement"
+  echo "    build     Build system, Docker, Makefile"
+  echo "    style     Formatage, lint (pas de logique)"
+  echo "    revert    Revert d'un commit precedent"
+  echo ""
+  echo "  Breaking change : ajouter ! apres le type"
+  echo "    feat!: supprimer le endpoint v1  → bump major"
+  echo ""
+  echo "  Exemples valides :"
+  echo "    feat(auth): add Google OAuth"
+  echo "    fix(organization): correct tenantId filter on list"
+  echo "    chore(deps): bump prisma to 6.1.0"
+  echo "    feat!: rename /api/tenants to /api/organizations"
+  echo ""
+  exit 1
+fi
