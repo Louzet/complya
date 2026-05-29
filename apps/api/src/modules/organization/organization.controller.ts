@@ -8,41 +8,50 @@ import {
   Param,
   Patch,
   Post,
-} from '@nestjs/common';
-import { OrganizationService } from './organization.service';
-import { CreateOrganizationDto } from './dto/create-organization.dto';
-import { UpdateOrganizationDto } from './dto/update-organization.dto';
+  Req,
+  UseGuards,
+} from "@nestjs/common";
+import { OrganizationService } from "./organization.service";
+import { CreateOrganizationDto } from "./dto/create-organization.dto";
+import { UpdateOrganizationDto } from "./dto/update-organization.dto";
+import { AuthGuard } from "../auth/auth.guard";
 
-// TODO: Restore @UseGuards(AuthGuard) and req.auth.userId once testing is done
-const DEV_USER = 'dev-bypass';
+interface RequestWithAuth {
+  auth: { userId: string; sessionId: string };
+}
 
-@Controller('organizations')
+@UseGuards(AuthGuard)
+@Controller("organizations")
 export class OrganizationController {
   constructor(private readonly service: OrganizationService) {}
 
   @Post()
-  create(@Body() dto: CreateOrganizationDto) {
-    return this.service.create(dto, DEV_USER);
+  create(@Req() req: RequestWithAuth, @Body() dto: CreateOrganizationDto) {
+    return this.service.create(dto, req.auth.userId);
   }
 
   @Get()
-  findAll() {
-    return this.service.findAll(DEV_USER);
+  findAll(@Req() req: RequestWithAuth) {
+    return this.service.findAll(req.auth.userId);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.service.findOne(id, DEV_USER);
+  @Get(":id")
+  findOne(@Req() req: RequestWithAuth, @Param("id") id: string) {
+    return this.service.findOne(id, req.auth.userId);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateOrganizationDto) {
-    return this.service.update(id, dto, DEV_USER);
+  @Patch(":id")
+  update(
+    @Req() req: RequestWithAuth,
+    @Param("id") id: string,
+    @Body() dto: UpdateOrganizationDto,
+  ) {
+    return this.service.update(id, dto, req.auth.userId);
   }
 
-  @Delete(':id')
+  @Delete(":id")
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id') id: string) {
-    return this.service.remove(id, DEV_USER);
+  remove(@Req() req: RequestWithAuth, @Param("id") id: string) {
+    return this.service.remove(id, req.auth.userId);
   }
 }

@@ -1,19 +1,20 @@
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import {
   S3Client,
   GetObjectCommand,
   DeleteObjectCommand,
   PutObjectCommand,
-} from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+  HeadBucketCommand,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import {
   StorageSignedUrlOptions,
   StorageUploadOptions,
   StorageDeleteOptions,
   StorageHealthResult,
-} from './storage.types';
-import { EnvConfig } from '../../config/env.schema';
+} from "./storage.types";
+import { EnvConfig } from "../../config/env.schema";
 
 @Injectable()
 export class StorageService {
@@ -22,20 +23,20 @@ export class StorageService {
   private readonly expirySeconds: number;
 
   constructor(private readonly config: ConfigService<EnvConfig, true>) {
-    const accountId = this.config.get('R2_ACCOUNT_ID', { infer: true });
-    const endpoint = this.config.get('R2_ENDPOINT', { infer: true });
+    const accountId = this.config.get("R2_ACCOUNT_ID", { infer: true });
+    const endpoint = this.config.get("R2_ENDPOINT", { infer: true });
 
-    this.bucket = this.config.get('R2_BUCKET_NAME', { infer: true });
-    this.expirySeconds = this.config.get('SIGNED_URL_EXPIRY_SECONDS', {
+    this.bucket = this.config.get("R2_BUCKET_NAME", { infer: true });
+    this.expirySeconds = this.config.get("SIGNED_URL_EXPIRY_SECONDS", {
       infer: true,
     });
 
     this.client = new S3Client({
-      region: 'auto',
+      region: "auto",
       endpoint: endpoint ?? `https://${accountId}.r2.cloudflarestorage.com`,
       credentials: {
-        accessKeyId: this.config.get('R2_ACCESS_KEY_ID', { infer: true }),
-        secretAccessKey: this.config.get('R2_SECRET_ACCESS_KEY', {
+        accessKeyId: this.config.get("R2_ACCESS_KEY_ID", { infer: true }),
+        secretAccessKey: this.config.get("R2_SECRET_ACCESS_KEY", {
           infer: true,
         }),
       },
@@ -63,7 +64,9 @@ export class StorageService {
   /**
    * Génère une signed URL pour téléchargement
    */
-  async getDownloadSignedUrl(options: StorageSignedUrlOptions): Promise<string> {
+  async getDownloadSignedUrl(
+    options: StorageSignedUrlOptions,
+  ): Promise<string> {
     const command = new GetObjectCommand({
       Bucket: this.bucket,
       Key: options.key,
@@ -92,23 +95,11 @@ export class StorageService {
   async checkHealth(): Promise<StorageHealthResult> {
     const start = Date.now();
     try {
-      // Tentative de listage du bucket pour vérifier la connexion
-      const command = new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: '__health-check__',
-        ContentType: 'text/plain',
-        Body: 'ok',
-      });
-      await this.client.send(command);
-      // Nettoyer le fichier de test
-      await this.deleteObject({ key: '__health-check__' });
-      return { status: 'ok', latencyMs: Date.now() - start };
-    } catch (error) {
-      return {
-        status: 'error',
-        latencyMs: Date.now() - start,
-        error: error instanceof Error ? error.message : 'Erreur inconnue R2',
-      };
+      // HeadBucket = lecture seule, pas d'écriture, pas de coût R2 Class A
+      await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
+      return { status: "ok", latencyMs: Date.now() - start };
+    } catch {
+      return { status: "error", latencyMs: Date.now() - start };
     }
   }
 }
