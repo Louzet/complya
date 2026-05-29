@@ -20,14 +20,6 @@ echo "   Environnement : ${NODE_ENV:-development}"
 echo "   Timestamp     : $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo ""
 
-# Vérifier que DATABASE_URL_UNPOOLED est définie
-if [ -z "${DATABASE_URL_UNPOOLED:-}" ]; then
-  echo "❌ Erreur : DATABASE_URL_UNPOOLED n'est pas définie"
-  echo "   Cette variable est obligatoire pour prisma migrate"
-  echo "   Récupérer la connexion directe (non-poolée) depuis Neon Console"
-  exit 1
-fi
-
 # Charger le .env si on est en développement
 if [ "${NODE_ENV:-development}" = "development" ] && [ -f "$API_DIR/.env" ]; then
   echo "   Chargement de $API_DIR/.env"
@@ -37,12 +29,29 @@ if [ "${NODE_ENV:-development}" = "development" ] && [ -f "$API_DIR/.env" ]; the
   set +a
 fi
 
+# Vérifier que DATABASE_URL_UNPOOLED est définie
+if [ -z "${DATABASE_URL_UNPOOLED:-}" ]; then
+  echo "❌ Erreur : DATABASE_URL_UNPOOLED n'est pas définie"
+  echo "   Cette variable est obligatoire pour prisma migrate"
+  echo "   Récupérer la connexion directe (non-poolée) depuis Neon Console"
+  exit 1
+fi
+
 echo "   DB : ${DATABASE_URL_UNPOOLED:0:50}..."
 echo ""
 
+cd "$API_DIR"
+
+# Créer le schema PostgreSQL si absent (requis par Prisma multiSchema)
+# prisma migrate ne crée pas les schemas PostgreSQL — à faire avant deploy
+echo "🔧 Création du schema 'complya' si absent..."
+DATABASE_URL="$DATABASE_URL_UNPOOLED" pnpm exec prisma db execute \
+  --stdin <<'SQL'
+CREATE SCHEMA IF NOT EXISTS complya;
+SQL
+
 # Générer le client Prisma
 echo "📦 Génération du client Prisma..."
-cd "$API_DIR"
 pnpm exec prisma generate
 
 # Appliquer les migrations
