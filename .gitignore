@@ -46,6 +46,13 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+# Dev logs — conserver la structure de répertoires, ignorer les fichiers
+.logs/**
+!.logs/
+!.logs/api/
+!.logs/web/
+!.logs/api/.gitkeep
+!.logs/web/.gitkeep
 
 # ============================================================
 # OS
@@ -82,8 +89,8 @@ apps/api/prisma/migrations/dev.db-journal
 
 # ============================================================
 # Docker
+# (.dockerignore doit être commité — pas d'exclusion ici)
 # ============================================================
-.dockerignore
 
 # ============================================================
 # Misc

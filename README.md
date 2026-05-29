@@ -5,118 +5,207 @@
 
 ---
 
-## 🏗️ Architecture & Fonctionnement du Projet
+## Quickstart
 
-Complya est conçu sous la forme d'un **monorepo TypeScript** géré par **Turborepo** et **pnpm**. Les responsabilités sont réparties comme suit :
+```bash
+git clone <repo>
+cd complya
+make setup        # installe, configure, migre — < 15 min
+make dev-docker   # lance API + Web + DB + MinIO + MailHog
+```
 
-### Composants principaux
-*   **`apps/web`** : Frontend Next.js 14 (App Router) servant d'interface utilisateur et de BFF (Backend-for-Frontend) léger. Aucun calcul fiscal ni logique métier ne doit être implémenté ici.
-*   **`apps/api`** : Backend NestJS 10 (utilisant Fastify en production) contenant l'ensemble de la logique métier, du moteur de calcul fiscal, de la gestion de l'OCR et de la génération des déclarations.
-*   **`packages/`** : Bibliothèques partagées au sein du monorepo :
-    *   `packages/types` : Modèles de données et interfaces de requêtes partagés.
-    *   `packages/schemas` : Schémas Zod pour la validation de bout en bout.
-    *   `packages/tax-rules` : Moteur et configuration YAML des taux et règles fiscales par pays/administration.
-    *   `packages/sdk` : Client API fortement typé pour faciliter les appels de `web` vers `api`.
-    *   `packages/config` : Configurations partagées (ESLint, Prettier, TypeScript).
-
-### Concepts clés du domaine
-*   **Tenant / Organisation** : Une entité parente (ex: Cabinet comptable ou PME en direct).
-*   **Company (Entreprise)** : Un dossier d'entreprise hébergé sous un tenant. Une organisation peut gérer $N$ entreprises.
-*   **FiscalPeriod (Période fiscale)** : Contexte mensuel (`year`, `month`) associé à un statut `open` ou `locked`. Les calculs de paie et d'obligations s'y effectuent toujours.
-*   **Obligation** : Échéance déclarative calculée par rapport à une période pour une administration (ex: `DGI`, `CNSS`, `CNAMGS`).
-*   **DUS** : Déclaration Unique des Salaires (Gabon Connect).
+**C'est tout.** `make setup` guide le reste interactivement.
 
 ---
 
-## 🚀 Quickstart — Démarrage rapide en local
+## Prérequis
 
-Suivez ces étapes pour configurer et lancer le projet en local en restant synchronisé (ISO) avec le reste de l'équipe.
-
-### 1. Prérequis
-Assurez-vous d'avoir installé sur votre machine :
-*   **Node.js** >= 20.0.0
-*   **pnpm** >= 9.0.0 (géré via Corepack ou installé globalement)
-*   **Docker & Docker Compose** (requis pour faire tourner la base de données PostgreSQL locale)
-
-### 2. Installation des dépendances
-À la racine du projet, lancez :
-```bash
-pnpm install
-```
-
-### 3. Fichiers d'environnement (`.env`)
-Copiez les modèles d'environnements pour chaque application :
-```bash
-# Pour l'API NestJS
-cp apps/api/.env.example apps/api/.env
-
-# Pour le Frontend Next.js
-cp apps/web/.env.example apps/web/.env.local
-```
-*Note : Les fichiers `.env` et `.env.local` sont exclus du suivi Git pour des raisons de sécurité.*
-
-### 4. Configuration de la base de données (PostgreSQL)
-
-Deux modes de fonctionnement sont supportés en local :
-
-#### Option A : PostgreSQL Local via Docker (Recommandé en Dev)
-1. Lancez le conteneur PostgreSQL :
-   ```bash
-   docker compose up -d postgres
-   ```
-2. Modifiez votre fichier `apps/api/.env` pour utiliser la base locale (décommentez ces lignes si nécessaire) :
-   ```env
-   DATABASE_URL=postgresql://postgres:postgres@localhost:5432/cemac_dev
-   DATABASE_URL_UNPOOLED=postgresql://postgres:postgres@localhost:5432/cemac_dev
-   ```
-
-#### Option B : Neon PostgreSQL (Cloud / Sandbox de l'équipe)
-Si vous travaillez avec des branches de base de données Neon ou une base partagée :
-1. Renseignez directement les chaînes de connexion Neon fournies dans votre console d'administration (`console.neon.tech`) dans le fichier `apps/api/.env` :
-   ```env
-   DATABASE_URL=postgresql://user:password@ep-xxx.eu-west-2.aws.neon.tech/cemac?sslmode=require&pgbouncer=true
-   DATABASE_URL_UNPOOLED=postgresql://user:password@ep-xxx.eu-west-2.aws.neon.tech/cemac?sslmode=require
-   ```
-
-### 5. Initialisation du schéma de base de données
-Exécutez les commandes suivantes pour générer le client Prisma et appliquer le schéma :
-```bash
-# Générer le client Prisma
-pnpm --filter api generate
-
-# Appliquer les migrations de structure de base de données
-pnpm --filter api migrate:dev
-```
-
-### 6. Lancement des serveurs de développement
-Lancez l'ensemble du monorepo (API + Frontend + Postgres s'il est configuré dans Docker Compose) :
-```bash
-pnpm dev
-```
-Une fois démarré :
-*   **Frontend Web** : [http://localhost:3000](http://localhost:3000)
-*   **Backend API** : [http://localhost:3001](http://localhost:3001)
-*   **Health Check API** (Vérification de la santé des services) : [http://localhost:3001/health](http://localhost:3001/health)
+| Outil   | Version | Lien                           |
+| ------- | ------- | ------------------------------ |
+| Node.js | ≥ 20    | https://nodejs.org             |
+| pnpm    | ≥ 9     | `npm install -g pnpm@9`        |
+| Docker  | any     | https://docker.com (optionnel) |
 
 ---
 
-## ⚠️ Notes sur l'état d'avancement & Points d'amélioration
+## Modes de développement
 
-Certains composants du projet sont en cours de développement, simplifiés pour les besoins des phases Alpha courantes, ou nécessitent des ajustements locaux. 
+### Mode Docker (recommandé)
 
-### 🔐 Contournement de l'authentification (Clerk)
-*   **Situation actuelle** : Le projet intègre **Clerk** pour l'authentification. Si vous ne possédez pas de clés d'API Clerk valides localement ou si vous souhaitez travailler en mode "sandbox" sans Clerk :
-    *   Vous pouvez temporairement commenter l'appel à `auth().protect()` dans `apps/web/src/middleware.ts` ainsi que la redirection vers `/sign-in` dans `apps/web/src/app/(app)/layout.tsx`.
-*   **Amélioration prévue** : Un mécanisme de mock d'authentification robuste (`bypass-auth-provider`) sera implémenté afin d'éviter d'avoir à manipuler le code à chaque nouvelle installation locale.
+Lance Postgres + MinIO (R2 local) + MailHog en containers. Parité maximale avec la prod.
 
-### 🌱 Données de démonstration (Prisma Seed)
-*   **Situation actuelle** : Le script de peuplement `apps/api/prisma/seed.ts` est actuellement une coquille vide prête pour l'injection (aucun enregistrement n'est inséré).
-*   **Amélioration prévue** : Les données par défaut (utilisateurs de démo, organisations de test, exemples d'entreprises gabonaises) seront intégrées dès l'Alpha A02 pour permettre un démarrage instantané post-migration. Pour peupler la base manuellement à ce stade, utilisez Prisma Studio via `pnpm --filter api studio`.
+```bash
+make setup        # choisir [1] Docker lors du prompt
+make dev-docker   # API + Web en watch mode
+```
 
-### ⚙️ Moteur de calcul & Règles fiscales
-*   **Situation actuelle** : Les calculs de cotisations (CNSS, CNAMGS, IRPP Gabon) sont pour le moment implémentés de façon simplifiée ou semi-statique dans l'API NestJS.
-*   **Amélioration prévue** : La migration totale de ces règles vers des configurations YAML versionnées autonomes (`packages/tax-rules`) est prévue lors de l'Alpha A21 afin de découpler la logique réglementaire du code de l'application.
+Accès :
 
-### 📄 OCR & Traitements asynchrones (Trigger.dev & Mistral AI)
-*   **Situation actuelle** : Les modules liés à l'OCR Mistral et à Trigger.dev sont désactivés par défaut via les variables d'environnement (`NEXT_PUBLIC_ENABLE_OCR=false`).
-*   **Amélioration prévue** : L'implémentation de la couche 3 (OCR & documents) se fera de manière progressive. Pour tester en local, l'utilisation de l'émulateur Trigger.dev en ligne de commande ou de credentials valides sera documentée dans `/docs/alphas/` correspondants.
+| URL                          | Service                                              |
+| ---------------------------- | ---------------------------------------------------- |
+| http://localhost:3000        | Next.js (Web)                                        |
+| http://localhost:3001        | NestJS (API)                                         |
+| http://localhost:3001/health | Health check                                         |
+| http://localhost:9001        | MinIO console (R2 local) — `minioadmin / minioadmin` |
+| http://localhost:8025        | MailHog (emails capturés)                            |
+
+Variables `apps/api/.env` en mode Docker :
+
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5433/complya
+DATABASE_URL_UNPOOLED=postgresql://postgres:postgres@localhost:5433/complya
+R2_ENDPOINT=http://localhost:9000
+R2_ACCESS_KEY_ID=minioadmin
+R2_SECRET_ACCESS_KEY=minioadmin
+R2_BUCKET_NAME=complya-documents-dev
+R2_ACCOUNT_ID=local
+```
+
+> `docker-compose.override.yml` remplace automatiquement ces valeurs par les noms de services internes
+> (`postgres:5432`, `minio:9000`) pour les containers. Les URLs `localhost` restent pour les outils host
+> (Prisma Studio, `make migrate`).
+
+### Mode sans Docker
+
+Neon dev branch + Cloudflare R2 dev bucket. Plus rapide à démarrer, services cloud réels.
+
+```bash
+make setup        # choisir [2] sans Docker lors du prompt
+make dev          # API + Web localement
+```
+
+Créer une branche Neon personnelle :
+
+```bash
+neonctl branch create --name dev-$(whoami) --parent main
+neonctl connection-string dev-$(whoami) --pooled   # → DATABASE_URL
+neonctl connection-string dev-$(whoami)             # → DATABASE_URL_UNPOOLED
+```
+
+---
+
+## Architecture
+
+```
+Browser
+  │  mutations → Server Actions (POST)
+  │  lectures  → fetch / SWR / React Query
+  ▼
+Next.js (App Router)      — UI + BFF léger, aucune logique métier
+  │  SDK typé (/packages/sdk)
+  ▼
+NestJS API                — toute la logique métier + fiscal
+  ├── PostgreSQL (Neon / Prisma)
+  ├── R2 / MinIO (métadonnées uniquement en transit)
+  └── Trigger.dev (jobs async)
+        └── Mistral OCR API
+```
+
+### Packages
+
+| Package              | Rôle                                    |
+| -------------------- | --------------------------------------- |
+| `packages/types`     | Types domaine partagés                  |
+| `packages/schemas`   | Schémas Zod partagés                    |
+| `packages/tax-rules` | Règles fiscales versionnées (YAML/JSON) |
+| `packages/sdk`       | Client TS typé Next → NestJS            |
+| `packages/config`    | ESLint · Prettier · tsconfig partagés   |
+
+### Concepts domaine
+
+| Terme                     | Définition                                                           |
+| ------------------------- | -------------------------------------------------------------------- |
+| **Tenant / Organisation** | Entité cliente (cabinet ou PME directe)                              |
+| **Company**               | Dossier entreprise sous un tenant                                    |
+| **FiscalPeriod**          | Contexte mensuel (`year`, `month`) — tous les calculs s'y rattachent |
+| **Obligation**            | Montant dû à une administration pour une période                     |
+| **Filing**                | Déclaration déposée + preuve archivée                                |
+| **DUS**                   | Déclaration Unique des Salaires (portail Gabon Connect)              |
+| **CNSS**                  | Caisse Nationale de Sécurité Sociale (Gabon)                         |
+| **CNAMGS**                | Caisse Nationale d'Assurance Maladie et de Garantie Sociale (Gabon)  |
+| **DGI**                   | Direction Générale des Impôts                                        |
+
+---
+
+## Commandes Makefile
+
+```bash
+make help          # liste toutes les commandes
+make dev           # API + Web sans Docker
+make dev-docker    # API + Web en Docker
+make setup         # onboarding complet nouveau dev
+make migrate       # appliquer les migrations Prisma
+make migrate-dev   # créer + appliquer une migration dev
+make seed          # peupler la DB avec données de test
+make reset         # reset DB + migrations + seed
+make studio        # Prisma Studio (UI base de données)
+make test          # lancer tous les tests
+make type-check    # TypeScript strict check
+make lint          # ESLint sur tout le monorepo
+make check         # type-check + lint
+make docker-up     # démarrer les services Docker
+make docker-down   # arrêter les services Docker
+make docker-logs   # logs Docker en live
+make docker-reset  # reset complet Docker (volumes inclus)
+make trigger-dev   # runner Trigger.dev local
+make build         # build production
+make clean         # nettoyer node_modules + dist
+```
+
+---
+
+## CI/CD
+
+| Branche   | Déclencheur   | Jobs                             |
+| --------- | ------------- | -------------------------------- |
+| `main`    | PR uniquement | type-check + lint + test + build |
+| `develop` | PR + push     | type-check + lint + test + build |
+
+Les jobs CI utilisent des variables placeholder (pas de vraie DB) — les tests unitaires ne touchent pas Postgres.
+
+---
+
+## Variables d'environnement
+
+Voir `apps/api/.env.example` pour la documentation complète de chaque variable.
+
+Variables obligatoires au démarrage de l'API :
+
+| Variable                | Source                                                                     |
+| ----------------------- | -------------------------------------------------------------------------- |
+| `DATABASE_URL`          | Neon Console ou Docker local                                               |
+| `DATABASE_URL_UNPOOLED` | Neon Console ou Docker local                                               |
+| `CLERK_SECRET_KEY`      | dashboard.clerk.com                                                        |
+| `R2_ACCOUNT_ID`         | dash.cloudflare.com ou `local` (Docker)                                    |
+| `R2_ACCESS_KEY_ID`      | Cloudflare R2 API tokens ou `minioadmin` (Docker)                          |
+| `R2_SECRET_ACCESS_KEY`  | Cloudflare R2 API tokens ou `minioadmin` (Docker)                          |
+| `R2_BUCKET_NAME`        | Créer un bucket par env : `-dev`, `-staging`, `-prod`                      |
+| `R2_ENDPOINT`           | `https://<account-id>.r2.cloudflarestorage.com` ou `http://localhost:9000` |
+| `TRIGGER_SECRET_KEY`    | app.trigger.dev (préfixe `tr_dev_` en dev)                                 |
+
+> L'API refuse de démarrer si une variable obligatoire est manquante ou invalide.
+
+---
+
+## Conventions Neon (sans Docker)
+
+```
+main          → prod (protégée, migrations CI uniquement)
+staging       → staging
+dev           → dev partagé (reset autorisé entre alphas)
+dev-<login>   → branche personnelle par développeur
+alpha/AXX     → branche éphémère CI par alpha
+```
+
+---
+
+## État d'avancement
+
+| Version  | Statut   | Périmètre                                                                                                   |
+| -------- | -------- | ----------------------------------------------------------------------------------------------------------- |
+| **v0.1** | En cours | Multi-tenant · Employés & salaires · Dashboard obligations DGI/CNSS/CNAMGS Gabon · Rappels · Export CSV/PDF |
+| **MVP**  | Planifié | Paie complète · Ingestion documents R2 · Exports DUS · Audit log                                            |
+| **v1.2** | Roadmap  | OCR Mistral · SYSCOHADA · Rapprochement bancaire · RBAC avancé                                              |
+| **v2.0** | Roadmap  | Moteur multi-pays CEMAC · Vue cabinet · Scoring risque                                                      |
+
+Voir `.claude/` pour la roadmap détaillée (`RELEASE_PLAN.md`) et les sprints en cours.
