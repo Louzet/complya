@@ -84,6 +84,9 @@ services:
       context: .
       dockerfile: infrastructure/docker/api.Dockerfile
       target: development
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
     networks:
       - complya
     volumes:
@@ -114,8 +117,7 @@ services:
       retries: 8
       start_period: 45s
     restart: unless-stopped
-    command: >
-      sh -c "pnpm --filter api exec prisma generate && pnpm --filter api dev"
+    command: pnpm --filter api dev
     logging: *default-logging
 
   # ─── Frontend Next.js ────────────────────────────────────────────────────────
@@ -125,6 +127,9 @@ services:
       context: .
       dockerfile: infrastructure/docker/web.Dockerfile
       target: development
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
     networks:
       - complya
     volumes:

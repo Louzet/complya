@@ -22,7 +22,13 @@ RUN pnpm install --frozen-lockfile
 # ---- Development (hot-reload via next dev) ─────────────────
 FROM deps AS development
 ENV NODE_ENV=development
-COPY . .
+
+ARG UID=1000
+ARG GID=1000
+RUN chown -R ${UID}:${GID} /app/apps/web/src /app/apps/web/public 2>/dev/null || true
+USER ${UID}:${GID}
+
+COPY --chown=${UID}:${GID} . .
 WORKDIR /app
 EXPOSE 3000
 CMD ["pnpm", "--filter", "web", "dev"]
