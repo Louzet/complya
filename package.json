@@ -32,6 +32,12 @@
     "pnpm": ">=9.0.0"
   },
   "packageManager": "pnpm@9.15.4",
+  "pnpm": {
+    "overrides": {
+      "@typescript-eslint/eslint-plugin": "^8",
+      "@typescript-eslint/parser": "^8"
+    }
+  },
   "lint-staged": {
     "*.{ts,tsx}": [
       "prettier --write"

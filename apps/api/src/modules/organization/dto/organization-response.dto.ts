@@ -1,4 +1,4 @@
-import { OrgType } from '@prisma/client';
+import type { OrgType } from "@prisma/client";
 
 export class OrganizationDto {
   id!: string;

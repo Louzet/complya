@@ -1,7 +1,5 @@
-import {
-  FastifyAdapter,
-  NestFastifyApplication,
-} from "@nestjs/platform-fastify";
+import type { NestFastifyApplication } from "@nestjs/platform-fastify";
+import { FastifyAdapter } from "@nestjs/platform-fastify";
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe, Logger, type LogLevel } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
