@@ -22,11 +22,18 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    // Stack tracée côté serveur uniquement — jamais exposée au client
-    this.logger.error(
-      `${request.method} ${request.url} → ${status}`,
-      exception instanceof Error ? exception.stack : String(exception),
-    );
+    if (status >= 500) {
+      this.logger.error(
+        `${request.method} ${request.url} → ${status}`,
+        exception instanceof Error ? exception.stack : String(exception),
+      );
+    } else {
+      const msg =
+        exception instanceof HttpException
+          ? exception.message
+          : String(exception);
+      this.logger.warn(`${request.method} ${request.url} → ${status} ${msg}`);
+    }
 
     // 4xx : passe les détails (validation, messages métier)
     // 5xx : toujours générique — jamais de détails internes
