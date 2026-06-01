@@ -3,7 +3,7 @@
         dev up stop restart logs logs-api logs-web \
         migrate migrate-docker migrate-dev seed reset studio \
         test test-watch type-check lint check \
-        docker-ps docker-reset \
+        docker-ps bash-api bash-web docker-reset \
         build clean r2-console trigger-dev \
         release release-minor release-major release-dry
 
@@ -45,9 +45,11 @@ dev-local: ## Lance API + Web localement SANS Docker (Neon ou Postgres local req
 stop: ## Arrête tous les services Docker
 	docker compose stop
 
-restart: ## Redémarre un service (ex: make restart SVC=api)
+restart: ## Redémarre un service avec volumes frais (ex: make restart SVC=api)
 	@[ -n "$(SVC)" ] || (echo "$(YELLOW)Usage: make restart SVC=api$(NC)" && exit 1)
-	docker compose restart $(SVC)
+	docker compose stop $(SVC)
+	docker compose rm -f $(SVC)
+	docker compose up -d -V $(SVC)
 
 # ─── Logs ─────────────────────────────────────────────────────────────────────
 
@@ -109,6 +111,12 @@ check: type-check lint ## type-check + lint (à lancer avant chaque commit)
 
 docker-ps: ## Liste les containers et leur statut (up/down/unhealthy)
 	docker compose ps -a
+
+bash-api: ## Ouvre un bash dans le container API (NestJS)
+	docker compose exec api sh
+
+bash-web: ## Ouvre un bash dans le container Web (Next.js)
+	docker compose exec web sh
 
 docker-reset: ## Arrête + supprime volumes Docker (reset complet — irréversible)
 	@echo "$(YELLOW)Suppression des volumes Docker...$(NC)"

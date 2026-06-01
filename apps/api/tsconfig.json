@@ -6,6 +6,9 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "incremental": true,
+    // Cache incrémental hors de outDir (dist) : tsc --noEmit ne touche jamais dist,
+    // donc le type-check est immunisé contre les droits/propriété de dist.
+    "tsBuildInfoFile": "./node_modules/.cache/tsc/api.tsbuildinfo",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true
   },

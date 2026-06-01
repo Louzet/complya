@@ -1,9 +1,11 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { Test, TestingModule } from '@nestjs/testing';
-import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
-import { AppModule } from '../src/app.module';
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import type { TestingModule } from "@nestjs/testing";
+import { Test } from "@nestjs/testing";
+import type { NestFastifyApplication } from "@nestjs/platform-fastify";
+import { FastifyAdapter } from "@nestjs/platform-fastify";
+import { AppModule } from "../src/app.module";
 
-describe('Health Check (e2e)', () => {
+describe("Health Check (e2e)", () => {
   let app: NestFastifyApplication;
 
   beforeAll(async () => {
@@ -15,7 +17,7 @@ describe('Health Check (e2e)', () => {
       new FastifyAdapter(),
     );
 
-    app.setGlobalPrefix('api', { exclude: ['health'] });
+    app.setGlobalPrefix("api", { exclude: ["health"] });
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
   });
@@ -24,10 +26,10 @@ describe('Health Check (e2e)', () => {
     await app.close();
   });
 
-  it('GET /health → retourne 200 avec status ok ou degraded', async () => {
+  it("GET /health → retourne 200 avec status ok ou degraded", async () => {
     const response = await app.inject({
-      method: 'GET',
-      url: '/health',
+      method: "GET",
+      url: "/health",
     });
 
     expect(response.statusCode).toBe(200);
@@ -42,7 +44,7 @@ describe('Health Check (e2e)', () => {
       };
     };
 
-    expect(['ok', 'degraded', 'error']).toContain(body.status);
+    expect(["ok", "degraded", "error"]).toContain(body.status);
     expect(body.timestamp).toBeDefined();
     expect(body.services).toBeDefined();
     expect(body.services.database).toBeDefined();
@@ -50,10 +52,10 @@ describe('Health Check (e2e)', () => {
     expect(body.services.trigger).toBeDefined();
   });
 
-  it('GET /health → les services ont un status valide', async () => {
+  it("GET /health → les services ont un status valide", async () => {
     const response = await app.inject({
-      method: 'GET',
-      url: '/health',
+      method: "GET",
+      url: "/health",
     });
 
     const body = JSON.parse(response.payload) as {
@@ -61,7 +63,7 @@ describe('Health Check (e2e)', () => {
     };
 
     for (const service of Object.values(body.services)) {
-      expect(['ok', 'error']).toContain(service.status);
+      expect(["ok", "error"]).toContain(service.status);
     }
   });
 });

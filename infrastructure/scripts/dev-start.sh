@@ -17,6 +17,10 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 BUILD_FLAG="--build"
+# -V recrée les volumes anonymes (node_modules) depuis l'image.
+# Nécessaire quand un package est ajouté — sans ça, l'ancien volume est réutilisé
+# même si l'image a été rebuildée et contient le nouveau package.
+VOLUMES_FLAG="-V"
 if [ "${1:-}" = "--no-build" ]; then
   BUILD_FLAG=""
 fi
@@ -54,8 +58,9 @@ LOG_WEB=".logs/web/${LOG_DATE}.log"
 # ─── Démarrage ───────────────────────────────────────────────────────────────
 printf "\n${CYAN}🚀 Démarrage Complya...${NC}\n"
 # --remove-orphans : supprime les containers d'anciennes configs (ex: mailhog → mailpit)
+# -V : recrée les volumes anonymes depuis l'image (node_modules frais à chaque démarrage)
 # shellcheck disable=SC2086
-docker compose up -d --remove-orphans $BUILD_FLAG
+docker compose up -d --remove-orphans $BUILD_FLAG $VOLUMES_FLAG
 
 printf "\n${GREEN}✓ Services démarrés${NC}\n\n"
 printf "  API     → http://localhost:3001\n"

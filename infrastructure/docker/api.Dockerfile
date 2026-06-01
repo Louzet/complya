@@ -28,7 +28,15 @@ RUN pnpm --filter api exec prisma generate
 # ---- Development (hot-reload via nest start --watch) ──────
 FROM deps AS development
 ENV NODE_ENV=development
-COPY . .
+
+ARG UID=1000
+ARG GID=1000
+# Chown uniquement les répertoires sources — node_modules reste root (world-readable = OK).
+# prisma generate est déjà exécuté dans la stage deps (au build), pas au démarrage du container.
+RUN chown -R ${UID}:${GID} /app/apps/api/src /app/apps/api/prisma 2>/dev/null || true
+USER ${UID}:${GID}
+
+COPY --chown=${UID}:${GID} . .
 WORKDIR /app
 EXPOSE 3001 9229
 CMD ["pnpm", "--filter", "api", "dev"]
